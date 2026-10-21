@@ -1,0 +1,1250 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>물풍선 팡팡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root{
+  --bg:#DCEFEA; --ink:#173847; --soft:#557684; --panel:#FFFFFF; --line:#B5D7D1;
+  --accent:#1B87B8; --accent-ink:#FFFFFF; --sand:#F3DCAA; --warn:#C93E57;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D2730; --ink:#E2F2EE; --soft:#8FB4BD; --panel:#15343F; --line:#28505D;
+    --accent:#45B6E6; --accent-ink:#052029; --sand:#3A3424; --warn:#FF7690;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D2730; --ink:#E2F2EE; --soft:#8FB4BD; --panel:#15343F; --line:#28505D;
+  --accent:#45B6E6; --accent-ink:#052029; --sand:#3A3424; --warn:#FF7690;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:'Jua','Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-ui,sans-serif;
+  overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+#app{height:100%;display:flex;flex-direction:column;max-width:860px;margin:0 auto;padding:8px 12px 10px;gap:8px}
+header{display:flex;align-items:center;gap:10px;min-height:38px}
+header .logo{font-size:1.35rem;letter-spacing:-.01em}
+header .spacer{flex:1}
+#timer{font-size:1.25rem;min-width:3.2em;text-align:center;padding:2px 10px;border-radius:999px;background:var(--panel);border:2px solid var(--line)}
+#timer.hurry{color:var(--warn);border-color:var(--warn)}
+.ghost{background:transparent;border:2px solid var(--line);border-radius:12px;padding:5px 12px}
+.ghost:hover{border-color:var(--accent)}
+
+#hud{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.chip{display:flex;align-items:center;gap:6px;background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:4px 8px;min-width:0;font-size:.9rem}
+.chip .dot{width:16px;height:16px;border-radius:50%;flex:none;border:2px solid rgba(0,0,0,.15)}
+.chip .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.chip .st{white-space:nowrap;color:var(--soft);font-size:.82rem}
+.chip.out{opacity:.4}
+.chip.me{border-color:var(--accent)}
+.chip.trap .st{color:var(--warn)}
+
+#stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative}
+#cv{display:block;border-radius:16px;box-shadow:0 0 0 4px #7FB8C9, 0 10px 0 4px #5C98AA}
+#result{position:absolute;inset:0;display:none;align-items:center;justify-content:center}
+#result .card{background:var(--panel);border:3px solid var(--line);border-radius:20px;padding:22px 26px;text-align:center;max-width:320px;box-shadow:0 8px 0 var(--line)}
+#result h2{margin:0 0 6px;font-size:1.8rem;font-weight:400}
+#result p{margin:0 0 16px;color:var(--soft)}
+#spect{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:var(--panel);border:2px solid var(--line);border-radius:999px;padding:3px 12px;font-size:.85rem;display:none}
+
+#pad{display:none;height:150px;flex:none;align-items:center;justify-content:space-between;padding:0 8px;touch-action:none}
+body.touch #pad{display:flex}
+#joy{width:136px;height:136px;border-radius:50%;background:var(--panel);border:3px solid var(--line);position:relative;touch-action:none}
+#knob{position:absolute;width:58px;height:58px;border-radius:50%;left:50%;top:50%;margin:-29px 0 0 -29px;background:var(--accent);opacity:.85}
+#fire{width:104px;height:104px;border-radius:50%;border:none;background:#2E9BEA;color:#fff;font-size:1.15rem;box-shadow:0 6px 0 #1C6FA9;touch-action:none}
+#fire:active{transform:translateY(4px);box-shadow:0 2px 0 #1C6FA9}
+
+.screen{position:fixed;inset:0;display:none;overflow:auto;background:var(--bg);
+  padding:calc(env(safe-area-inset-top,0px) + 18px) 16px calc(env(safe-area-inset-bottom,0px) + 18px)}
+.screen.on{display:block}
+.wrap{max-width:440px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.hero{text-align:center;padding:10px 0 4px}
+.hero svg{width:150px;height:auto}
+.hero h1{margin:4px 0 2px;font-size:2.6rem;font-weight:400;letter-spacing:-.02em}
+.hero p{margin:0;color:var(--soft)}
+.box{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:14px}
+.box h3{margin:0 0 10px;font-weight:400;font-size:1.15rem}
+.row{display:flex;gap:8px;align-items:center}
+.field{flex:1;min-width:0;border:2px solid var(--line);background:var(--bg);border-radius:12px;padding:9px 12px;font-size:1rem}
+.btn{border:none;border-radius:14px;padding:11px 16px;background:var(--accent);color:var(--accent-ink);font-size:1.05rem;box-shadow:0 4px 0 rgba(0,0,0,.18)}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.18)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.wide{width:100%}
+.btn.alt{background:var(--panel);color:var(--ink);border:2px solid var(--line);box-shadow:0 4px 0 var(--line)}
+.note{color:var(--soft);font-size:.88rem;margin:8px 0 0;line-height:1.5}
+.err{color:var(--warn);font-size:.9rem;margin:8px 0 0;min-height:1em}
+.slot{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:2px dashed var(--line)}
+.slot:last-child{border-bottom:none}
+.slot .dot{width:22px;height:22px;border-radius:50%;flex:none;border:2px solid rgba(0,0,0,.15)}
+.slot .lbl{flex:1;min-width:0}
+.slot .lbl small{display:block;color:var(--soft);font-size:.8rem}
+.slot button{min-width:72px}
+.code{font-size:2.4rem;text-align:center;letter-spacing:.18em;margin:2px 0 4px}
+.check{display:flex;gap:8px;align-items:center;margin-top:10px}
+.check input{width:20px;height:20px;accent-color:var(--accent)}
+kbd{font-family:inherit;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:0 5px}
+@media (max-width:520px){
+  #hud{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .chip{font-size:.82rem;padding:3px 6px}
+  header .logo{font-size:1.1rem}
+}
+@media (prefers-reduced-motion: reduce){ .hero svg *{animation:none!important} }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <span class="logo">물풍선 팡팡</span>
+    <span class="spacer"></span>
+    <span id="timer">3:00</span>
+    <button class="ghost" id="muteBtn" aria-label="소리 켜기/끄기">🔊</button>
+    <button class="ghost" id="quitBtn">나가기</button>
+  </header>
+  <div id="hud"></div>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="spect">관전 중이에요</div>
+    <div id="result"><div class="card">
+      <h2 id="resTitle">승리!</h2>
+      <p id="resSub"></p>
+      <div class="row" id="resBtns" style="justify-content:center">
+        <button class="btn" id="againBtn">한 판 더</button>
+        <button class="btn alt" id="menuBtn">메뉴로</button>
+      </div>
+    </div></div>
+  </div>
+  <div id="pad">
+    <div id="joy"><div id="knob"></div></div>
+    <button id="fire" aria-label="물풍선 놓기">풍선!</button>
+  </div>
+</div>
+
+<!-- 메인 메뉴 -->
+<section class="screen on" id="scrMenu">
+  <div class="wrap">
+    <div class="hero">
+      <svg viewBox="0 0 160 120" aria-hidden="true">
+        <style>
+          .bob{animation:bob 2.4s ease-in-out infinite;transform-origin:80px 60px}
+          @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+        </style>
+        <g class="bob">
+          <ellipse cx="80" cy="58" rx="40" ry="42" fill="#2E9BEA"/>
+          <ellipse cx="64" cy="40" rx="11" ry="15" fill="#BDE6FF" opacity=".8"/>
+          <path d="M74 98 L86 98 L80 106 Z" fill="#1C6FA9"/>
+          <path d="M80 106 C 76 112, 86 114, 80 120" stroke="#1C6FA9" stroke-width="3" fill="none"/>
+        </g>
+        <circle cx="22" cy="86" r="9" fill="#9FDDFB"/><circle cx="138" cy="30" r="6" fill="#9FDDFB"/><circle cx="140" cy="88" r="11" fill="#CDEFFF"/>
+      </svg>
+      <h1>물풍선 팡팡</h1>
+      <p>물풍선을 놓고, 물줄기로 상대를 가둬 터뜨리세요.</p>
+    </div>
+    <div class="box">
+      <h3>내 이름</h3>
+      <input class="field" id="nick" maxlength="8" placeholder="이름 (8자까지)">
+    </div>
+    <button class="btn wide" id="goLocal">한 기기에서 하기 (봇 대전 포함)</button>
+    <div class="box">
+      <h3>온라인으로 친구와 하기</h3>
+      <button class="btn wide" id="goHost">방 만들기</button>
+      <div class="row" style="margin-top:10px">
+        <input class="field" id="joinCode" maxlength="4" placeholder="방 코드 4자리" autocapitalize="off" autocomplete="off" spellcheck="false">
+        <button class="btn" id="goJoin">참여</button>
+      </div>
+      <p class="err" id="onlineErr"></p>
+      <p class="note" id="onlineNote">온라인 연결을 확인하는 중이에요…</p>
+    </div>
+    <p class="note">조작: <kbd>W A S D</kbd> 또는 방향키로 이동, <kbd>Space</kbd>로 물풍선. 휴대폰에서는 화면 아래 조이스틱과 버튼을 써요. 물줄기에 맞으면 물방울에 갇히고, 3초 안에 다른 플레이어가 닿으면 터져서 탈락해요. 마지막까지 남으면 승리!</p>
+  </div>
+</section>
+
+<!-- 로컬 설정 -->
+<section class="screen" id="scrLocal">
+  <div class="wrap">
+    <div class="hero" style="padding-bottom:0"><h1 style="font-size:2rem">한 기기에서 하기</h1><p>자리를 눌러 사람, 봇, 비움을 바꿔요.</p></div>
+    <div class="box" id="modeBoxL">
+      <h3>게임 방식</h3>
+      <div class="row modeRow">
+        <button class="btn" data-mode="ffa" style="flex:1">개인전</button>
+        <button class="btn alt" data-mode="team" style="flex:1">팀전</button>
+      </div>
+      <p class="note modeNote"></p>
+    </div>
+    <div class="box" id="localSlots"></div>
+    <p class="err" id="localErr"></p>
+    <div class="row">
+      <button class="btn alt" id="localBack">뒤로</button>
+      <button class="btn" id="localStart" style="flex:1">시작하기</button>
+    </div>
+    <p class="note">키보드 한 대로 최대 4명이 할 수 있어요. 휴대폰에서는 1P만 터치로 조작해요.</p>
+  </div>
+</section>
+
+<!-- 온라인 대기실 -->
+<section class="screen" id="scrLobby">
+  <div class="wrap">
+    <div class="box" style="text-align:center">
+      <h3 style="margin-bottom:0">방 코드</h3>
+      <div class="code" id="lobbyCode">----</div>
+      <p class="note" style="margin-top:0" id="lobbyHint">초대 링크를 카톡으로 보내면 친구는 링크만 누르면 코드가 자동으로 들어가요.</p>
+      <button class="btn wide" id="inviteBtn" style="margin-top:10px">초대 링크 보내기</button>
+    </div>
+    <div class="box" id="modeBoxO">
+      <h3>게임 방식</h3>
+      <div class="row modeRow">
+        <button class="btn" data-mode="ffa" style="flex:1">개인전</button>
+        <button class="btn alt" data-mode="team" style="flex:1">팀전</button>
+      </div>
+      <p class="note modeNote"></p>
+    </div>
+    <div class="box">
+      <h3>참가자</h3>
+      <div id="lobbyList"></div>
+      <label class="check" id="botsWrap"><input type="checkbox" id="fillBots" checked> 빈자리는 봇으로 채우기</label>
+    </div>
+    <p class="err" id="lobbyErr"></p>
+    <div class="row">
+      <button class="btn alt" id="lobbyBack">나가기</button>
+      <button class="btn" id="lobbyStart" style="flex:1">게임 시작</button>
+    </div>
+  </div>
+</section>
+
+<script>
+(() => {
+'use strict';
+// ───────── 기본 설정 ─────────
+const COLS = 13, ROWS = 11, HB = 0.4, BALLOON_TIME = 2.6, BUBBLE_TIME = 3.0, ROUND_TIME = 180;
+const COLORS = ['#FF6B8B', '#3E8EF7', '#F5B82E', '#38B57F'];
+const DARKS  = ['#C9446A', '#2563C4', '#C68C10', '#21835A'];
+const PAL = [['#FF6B8B','#C9446A'],['#3E8EF7','#2563C4'],['#F5B82E','#C68C10'],['#38B57F','#21835A'],['#FF9A4D','#C9681F'],['#2FC3D6','#1A8C9C']];
+const TEAMOF = [0, 1, 1, 0];
+const TEAM_NAMES = ['노을 팀', '바다 팀'];
+const TEAM_COLORS = ['#F2734E', '#2E8FD9'];
+const ciFor = (seat, teams) => teams ? [0, 1, 5, 4][seat] : seat;
+let teamMode = false;
+const SPAWN = [[0,0],[12,10],[12,0],[0,10]];
+const DIRS = [[0,-1],[1,0],[0,1],[-1,0]];
+const ITEM_ICON = { b:'🎈', p:'💧', s:'👟' };
+const $ = id => document.getElementById(id);
+
+// ───────── 키보드 ─────────
+const KEYSETS = [
+  { name:'W A S D + Space', up:'KeyW', down:'KeyS', left:'KeyA', right:'KeyD', bomb:['Space','KeyF'] },
+  { name:'방향키 + Enter', up:'ArrowUp', down:'ArrowDown', left:'ArrowLeft', right:'ArrowRight', bomb:['Enter','NumpadEnter','Slash','ShiftRight'] },
+  { name:'I J K L + O', up:'KeyI', down:'KeyK', left:'KeyJ', right:'KeyL', bomb:['KeyO'] },
+  { name:'숫자패드 8 4 5 6 + 0', up:'Numpad8', down:'Numpad5', left:'Numpad4', right:'Numpad6', bomb:['Numpad0'] },
+];
+const KEYMAP = {};
+KEYSETS.forEach((k, s) => {
+  KEYMAP[k.up] = { s, d:[0,-1] }; KEYMAP[k.down] = { s, d:[0,1] };
+  KEYMAP[k.left] = { s, d:[-1,0] }; KEYMAP[k.right] = { s, d:[1,0] };
+  k.bomb.forEach(c => { if (!KEYMAP[c]) KEYMAP[c] = { s, b:true }; });
+});
+const held = [];
+const bombQ = [0,0,0,0];
+const touch = { on:false, d:[0,0] };
+function inGame(){ return mode === 'local' || mode === 'host' || mode === 'client'; }
+addEventListener('keydown', e => {
+  initAudio();
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT')) return;
+  const m = KEYMAP[e.code];
+  if (!m) return;
+  if (inGame()) e.preventDefault();
+  if (m.b) { if (!e.repeat) bombQ[m.s]++; return; }
+  for (let i = held.length - 1; i >= 0; i--) if (held[i].code === e.code) held.splice(i, 1);
+  held.push({ code:e.code, s:m.s, d:m.d });
+});
+addEventListener('keyup', e => {
+  for (let i = held.length - 1; i >= 0; i--) if (held[i].code === e.code) held.splice(i, 1);
+});
+addEventListener('blur', () => { held.length = 0; });
+function dirOf(sets, useTouch){
+  if (useTouch && touch.on && (touch.d[0] || touch.d[1])) return touch.d;
+  for (let i = held.length - 1; i >= 0; i--) if (sets.includes(held[i].s)) return held[i].d;
+  return [0,0];
+}
+function takeBomb(sets){
+  let n = 0; for (const s of sets) { n += bombQ[s]; bombQ[s] = 0; } return n > 0;
+}
+
+// ───────── 터치 컨트롤 ─────────
+const joy = $('joy'), knob = $('knob');
+let joyId = null;
+function isTouchy(){ return matchMedia('(pointer: coarse)').matches; }
+if (isTouchy()) document.body.classList.add('touch');
+addEventListener('touchstart', () => document.body.classList.add('touch'), { once:true, passive:true });
+function joyMove(e){
+  const r = joy.getBoundingClientRect();
+  const cx = r.left + r.width/2, cy = r.top + r.height/2;
+  let dx = e.clientX - cx, dy = e.clientY - cy;
+  const len = Math.hypot(dx, dy), max = r.width/2 - 20;
+  if (len > max) { dx = dx/len*max; dy = dy/len*max; }
+  knob.style.transform = `translate(${dx}px, ${dy}px)`;
+  if (len < 14) touch.d = [0,0];
+  else if (Math.abs(dx) > Math.abs(dy)) touch.d = [Math.sign(dx), 0];
+  else touch.d = [0, Math.sign(dy)];
+}
+joy.addEventListener('pointerdown', e => { initAudio(); joyId = e.pointerId; joy.setPointerCapture(e.pointerId); touch.on = true; joyMove(e); e.preventDefault(); });
+joy.addEventListener('pointermove', e => { if (e.pointerId === joyId) joyMove(e); });
+const joyEnd = e => { if (e.pointerId !== joyId) return; joyId = null; touch.on = false; touch.d = [0,0]; knob.style.transform = ''; };
+joy.addEventListener('pointerup', joyEnd); joy.addEventListener('pointercancel', joyEnd);
+$('fire').addEventListener('pointerdown', e => { initAudio(); bombQ[0]++; e.preventDefault(); });
+
+// ───────── 소리 ─────────
+let AC = null, muted = false;
+function initAudio(){
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
+}
+function tone(f1, f2, dur, type, vol){
+  if (!AC || muted) return;
+  const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+  o.type = type || 'sine'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+  g.gain.setValueAtTime(vol || .12, t); g.gain.exponentialRampToValueAtTime(.0008, t + dur);
+  o.connect(g).connect(AC.destination); o.start(t); o.stop(t + dur + .02);
+}
+function splash(){
+  if (!AC || muted) return;
+  const t = AC.currentTime, len = AC.sampleRate * .35, buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 2.2);
+  const src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  src.buffer = buf; f.type = 'lowpass'; f.frequency.setValueAtTime(2400, t); f.frequency.exponentialRampToValueAtTime(300, t + .35);
+  g.gain.value = .35; src.connect(f).connect(g).connect(AC.destination); src.start(t);
+  tone(420, 90, .25, 'triangle', .12);
+}
+$('muteBtn').onclick = () => { muted = !muted; $('muteBtn').textContent = muted ? '🔇' : '🔊'; };
+
+// ───────── 게임 로직 ─────────
+function newGame(slots, teams){
+  teams = !!teams;
+  const grid = [], hidden = [];
+  const safe = new Set();
+  slots.forEach((sl, i) => {
+    const [sx, sy] = SPAWN[sl.seat ?? i];
+    [[0,0],[1,0],[-1,0],[0,1],[0,-1],[2,0],[-2,0],[0,2],[0,-2]].forEach(([a,b]) => {
+      const x = sx + a, y = sy + b;
+      if (x >= 0 && y >= 0 && x < COLS && y < ROWS) safe.add(y*COLS + x);
+    });
+  });
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const i = y*COLS + x;
+    let c = (x % 2 === 1 && y % 2 === 1) ? '#' : '.';
+    if (c === '.' && !safe.has(i) && Math.random() < 0.7) c = 'x';
+    grid.push(c);
+    const r = Math.random();
+    hidden.push(c === 'x' ? (r < .17 ? 'b' : r < .32 ? 'p' : r < .43 ? 's' : '') : '');
+  }
+  // 첫 2칸만 안전하게: 바로 옆 칸은 꼭 비우고, 두 칸 떨어진 곳은 50%로 상자 배치
+  slots.forEach((sl, i) => {
+    const [sx, sy] = SPAWN[sl.seat ?? i];
+    [[2,0],[-2,0],[0,2],[0,-2]].forEach(([a,b]) => {
+      const x = sx + a, y = sy + b;
+      if (x >= 0 && y >= 0 && x < COLS && y < ROWS && grid[y*COLS+x] === '.' && Math.random() < .5) grid[y*COLS+x] = 'x';
+    });
+  });
+  const players = slots.map((s, i) => { const seat = s.seat ?? i; return {
+    i, seat, name:s.name, ctrl:s.ctrl, ks:s.ks, sets:s.sets, peer:s.peer || null,
+    team: teams ? TEAMOF[seat] : i, ci: ciFor(seat, teams), inv:0,
+    x:SPAWN[seat][0] + .5, y:SPAWN[seat][1] + .5, dir:2, st:0, bub:0,
+    cap:1, pow:2, spd:0, active:0, moving:false, lastBomb:s.lastBomb || 0,
+    ai:{ t:Math.random()*.3, path:[], bomb:false },
+  }; });
+  return { grid, hidden, players, teams, balloons:[], flames:[], time:ROUND_TIME, over:false, overT:0, winner:-1, winTeam:-1 };
+}
+const cell = (G, x, y) => (x < 0 || y < 0 || x >= COLS || y >= ROWS) ? '#' : G.grid[y*COLS + x];
+function balloonAt(G, x, y){ for (const b of G.balloons) if (b.x === x && b.y === y) return b; return null; }
+function flameAt(G, x, y){ for (const f of G.flames) if (f.x === x && f.y === y) return f; return null; }
+function blocked(G, p, x, y){
+  const c = cell(G, x, y);
+  if (c === '#' || c === 'x') return true;
+  const b = balloonAt(G, x, y);
+  return !!(b && !b.pass.has(p.i));
+}
+function overlaps(p, x, y){ return Math.abs(p.x - (x + .5)) < .5 + HB && Math.abs(p.y - (y + .5)) < .5 + HB; }
+function speedOf(p){ return p.st === 1 ? 0.9 : 3.0 + p.spd * 0.42; }
+
+function movePlayer(G, p, dx, dy, dt){
+  const s = speedOf(p) * dt;
+  if (dx) {
+    p.dir = dx > 0 ? 1 : 3;
+    const nx = p.x + dx*s, lead = Math.floor(nx + dx*HB);
+    const r0 = Math.floor(p.y - HB + .001), r1 = Math.floor(p.y + HB - .001);
+    const b0 = blocked(G, p, lead, r0), b1 = blocked(G, p, lead, r1);
+    if (!b0 && !b1) p.x = nx;
+    else {
+      if (Math.floor(p.x + dx*HB) !== lead) p.x = dx > 0 ? lead - HB - .001 : lead + 1 + HB + .001;
+      if (r0 !== r1) {
+        if (b0 && !b1) p.y = Math.min(p.y + s, r1 + .5);
+        else if (b1 && !b0) p.y = Math.max(p.y - s, r0 + .5);
+      }
+    }
+  } else if (dy) {
+    p.dir = dy > 0 ? 2 : 0;
+    const ny = p.y + dy*s, lead = Math.floor(ny + dy*HB);
+    const c0 = Math.floor(p.x - HB + .001), c1 = Math.floor(p.x + HB - .001);
+    const b0 = blocked(G, p, c0, lead), b1 = blocked(G, p, c1, lead);
+    if (!b0 && !b1) p.y = ny;
+    else {
+      if (Math.floor(p.y + dy*HB) !== lead) p.y = dy > 0 ? lead - HB - .001 : lead + 1 + HB + .001;
+      if (c0 !== c1) {
+        if (b0 && !b1) p.x = Math.min(p.x + s, c1 + .5);
+        else if (b1 && !b0) p.x = Math.max(p.x - s, c0 + .5);
+      }
+    }
+  }
+}
+function placeBalloon(G, p){
+  if (p.st !== 0 || p.active >= p.cap) return;
+  const x = Math.floor(p.x), y = Math.floor(p.y);
+  if (balloonAt(G, x, y) || cell(G, x, y) === '#' || cell(G, x, y) === 'x') return;
+  const b = { x, y, t:BALLOON_TIME, pow:p.pow, owner:p.i, pass:new Set() };
+  for (const q of G.players) if (q.st !== 2 && overlaps(q, x, y)) b.pass.add(q.i);
+  G.balloons.push(b); p.active++;
+}
+function addFlame(G, x, y, k){
+  const f = flameAt(G, x, y);
+  if (f) { f.t = .5; if (f.k !== k) f.k = 'c'; }
+  else G.flames.push({ x, y, t:.5, k });
+}
+function burst(G, b){
+  const o = G.players[b.owner]; if (o) o.active = Math.max(0, o.active - 1);
+  addFlame(G, b.x, b.y, 'c');
+  for (const [dx, dy] of DIRS) {
+    const k = dx ? 'h' : 'v';
+    for (let i = 1; i <= b.pow; i++) {
+      const x = b.x + dx*i, y = b.y + dy*i, c = cell(G, x, y), id = y*COLS + x;
+      if (c === '#') break;
+      if (c === 'x') { G.grid[id] = G.hidden[id] || '.'; G.hidden[id] = ''; addFlame(G, x, y, k); break; }
+      if (c !== '.') { G.grid[id] = '.'; addFlame(G, x, y, k); break; }
+      const ob = balloonAt(G, x, y);
+      addFlame(G, x, y, k);
+      if (ob) { ob.t = 0; break; }
+    }
+  }
+}
+function detonate(G){
+  let again = true;
+  while (again) {
+    again = false;
+    for (let k = 0; k < G.balloons.length; k++) {
+      const b = G.balloons[k];
+      if (b.t <= 0) { G.balloons.splice(k, 1); burst(G, b); again = true; break; }
+    }
+  }
+}
+function step(G, inputs, dt){
+  for (const f of G.flames) f.t -= dt;
+  G.flames = G.flames.filter(f => f.t > 0);
+  if (G.over) { G.overT += dt; return; }
+  G.time -= dt;
+  for (const p of G.players) {
+    if (p.st === 2) continue;
+    if (p.inv > 0) p.inv -= dt;
+    if (p.st === 1) { p.bub -= dt; if (p.bub <= 0) { p.st = 2; continue; } }
+    const inp = inputs[p.i];
+    p.moving = false;
+    if (inp) {
+      if (inp.dx || inp.dy) { movePlayer(G, p, inp.dx, inp.dy, dt); p.moving = true; }
+      if (inp.bomb) placeBalloon(G, p);
+    }
+    for (const b of G.balloons) if (b.pass.has(p.i) && !overlaps(p, b.x, b.y)) b.pass.delete(p.i);
+    if (p.st === 0) {
+      const id = Math.floor(p.y)*COLS + Math.floor(p.x), c = G.grid[id];
+      if (c === 'b') { p.cap = Math.min(6, p.cap + 1); G.grid[id] = '.'; }
+      else if (c === 'p') { p.pow = Math.min(7, p.pow + 1); G.grid[id] = '.'; }
+      else if (c === 's') { p.spd = Math.min(6, p.spd + 1); G.grid[id] = '.'; }
+    }
+  }
+  for (const b of G.balloons) { b.t -= dt; if (flameAt(G, b.x, b.y)) b.t = 0; }
+  detonate(G);
+  for (const p of G.players) {
+    if (p.st === 0 && !(p.inv > 0) && flameAt(G, Math.floor(p.x), Math.floor(p.y))) { p.st = 1; p.bub = BUBBLE_TIME; p.moving = false; }
+  }
+  for (const q of G.players) {
+    if (q.st !== 1) continue;
+    for (const p of G.players) {
+      if (p !== q && p.st === 0 && Math.hypot(p.x - q.x, p.y - q.y) < .72) {
+        if (G.teams && p.team === q.team) { q.st = 0; q.bub = 0; q.inv = 1; } // 아군이 닿으면 구출
+        else q.st = 2;                                                      // 적이 닿으면 펑
+        break;
+      }
+    }
+  }
+  if (G.teams) {
+    const alive = new Set(G.players.filter(p => p.st !== 2).map(p => p.team));
+    if (alive.size <= 1) {
+      G.over = true; G.winner = -1; G.winTeam = alive.size ? [...alive][0] : -1;
+      for (const p of G.players) if (p.st === 1) p.st = 0;
+    } else if (G.time <= 0) { G.over = true; G.winner = -1; G.winTeam = -1; G.time = 0; }
+  } else {
+    const alive = G.players.filter(p => p.st !== 2);
+    if (alive.length <= 1) {
+      G.over = true; G.winner = alive.length ? alive[0].i : -1;
+      if (alive.length && alive[0].st === 1) alive[0].st = 0;
+    } else if (G.time <= 0) { G.over = true; G.winner = -1; G.time = 0; }
+  }
+}
+
+// ───────── 봇 ─────────
+function walk(G, x, y){ const c = cell(G, x, y); return (c === '.' || c === 'b' || c === 'p' || c === 's') && !balloonAt(G, x, y); }
+function dangerMap(G, extra){
+  const list = extra ? G.balloons.concat([extra]) : G.balloons;
+  let D;
+  const times = list.map(b => b.t);
+  for (let pass = 0; pass < 2; pass++) {
+    D = new Float32Array(COLS*ROWS).fill(99);
+    for (const f of G.flames) D[f.y*COLS + f.x] = 0;
+    list.forEach((b, bi) => {
+      const t = times[bi];
+      const m = (x, y) => { const i = y*COLS + x; if (t < D[i]) D[i] = t; };
+      m(b.x, b.y);
+      for (const [dx, dy] of DIRS) for (let i = 1; i <= b.pow; i++) {
+        const x = b.x + dx*i, y = b.y + dy*i, c = cell(G, x, y);
+        if (c === '#' || c === 'x') break;
+        m(x, y); if (c !== '.') break;
+      }
+    });
+    list.forEach((b, bi) => { times[bi] = Math.min(times[bi], D[b.y*COLS + b.x]); });
+  }
+  return D;
+}
+function bfs(G, p, D, sx, sy, inDanger){
+  const N = COLS*ROWS, dist = new Int16Array(N).fill(-1), prev = new Int32Array(N).fill(-1);
+  const start = sy*COLS + sx, q = [start]; dist[start] = 0;
+  const sp = speedOf(p);
+  for (let qi = 0; qi < q.length; qi++) {
+    const c = q[qi], x = c % COLS, y = (c / COLS) | 0;
+    for (const [dx, dy] of DIRS) {
+      const nx = x + dx, ny = y + dy;
+      if (!walk(G, nx, ny)) continue;
+      const n = ny*COLS + nx;
+      if (dist[n] >= 0) continue;
+      const d = D[n], arrive = (dist[c] + 1) / sp;
+      if (d < 99) {
+        if (!inDanger && d < 2.2) continue;
+        if (inDanger && (d < arrive + .3 && d > arrive - 1.2 || d === 0)) continue;
+      }
+      dist[n] = dist[c] + 1; prev[n] = c; q.push(n);
+    }
+  }
+  return { q, dist, prev, start };
+}
+function adjCrates(G, x, y){ let n = 0; for (const [dx, dy] of DIRS) if (cell(G, x+dx, y+dy) === 'x') n++; return n; }
+const isFoe = (G, p, e) => e !== p && e.st === 0 && (!G.teams || e.team !== p.team);
+const isAlly = (G, p, e) => e !== p && e.st === 0 && G.teams && e.team === p.team;
+function inLine(G, p, cx, cy, pred){
+  for (const [dx, dy] of DIRS) for (let i = 1; i <= p.pow; i++) {
+    const x = cx + dx*i, y = cy + dy*i, c = cell(G, x, y);
+    if (c === '#' || c === 'x') break;
+    if (G.players.some(e => pred(e) && Math.floor(e.x) === x && Math.floor(e.y) === y)) return true;
+  }
+  return G.players.some(e => pred(e) && Math.floor(e.x) === cx && Math.floor(e.y) === cy);
+}
+function pathTo(r, goal){
+  const path = [];
+  for (let c = goal; c >= 0 && c !== r.start; c = r.prev[c]) path.unshift([c % COLS, (c / COLS) | 0]);
+  return path;
+}
+function canEscape(G, p, cx, cy){
+  const D = dangerMap(G, { x:cx, y:cy, t:BALLOON_TIME, pow:p.pow });
+  const r = bfs(G, p, D, cx, cy, true);
+  for (const c of r.q) if (D[c] >= 99 && r.dist[c] <= 7) return true;
+  return false;
+}
+function botThink(G, p){
+  const ai = p.ai;
+  if (p.st === 1) {
+    ai.path = [];
+    if (!G.teams) return;
+    // 갇히면 살아 있는 아군 쪽으로 천천히 다가가기
+    const bx = Math.floor(p.x), by = Math.floor(p.y);
+    const r = bfs(G, p, new Float32Array(COLS*ROWS).fill(99), bx, by, false);
+    let goal = -1, bd = 1e9;
+    for (const c of r.q) {
+      const x = c % COLS, y = (c / COLS) | 0;
+      for (const a of G.players) if (isAlly(G, p, a)) {
+        const md = Math.abs(Math.floor(a.x) - x) + Math.abs(Math.floor(a.y) - y) + r.dist[c]*.01;
+        if (md < bd) { bd = md; goal = c; }
+      }
+    }
+    if (goal >= 0) ai.path = pathTo(r, goal);
+    return;
+  }
+  const cx = Math.floor(p.x), cy = Math.floor(p.y), start = cy*COLS + cx;
+  const D = dangerMap(G, null), inDanger = D[start] < 99;
+  const r = bfs(G, p, D, cx, cy, inDanger);
+  let goal = -1;
+  if (inDanger) {
+    for (const c of r.q) if (D[c] >= 99) { goal = c; break; }
+    if (goal < 0) { let bv = -1; for (const c of r.q) if (D[c] > bv) { bv = D[c]; goal = c; } }
+  } else {
+    if (p.active < p.cap && Math.random() < .8) {
+      const ac = adjCrates(G, cx, cy), hit = inLine(G, p, cx, cy, e => isFoe(G, p, e));
+      const near = G.players.some(e => isFoe(G, p, e) && Math.abs(Math.floor(e.x) - cx) + Math.abs(Math.floor(e.y) - cy) <= 2);
+      const allyRisk = inLine(G, p, cx, cy, e => isAlly(G, p, e));
+      const trapped = G.players.some(e => e.st === 1 && Math.abs(Math.floor(e.x) - cx) + Math.abs(Math.floor(e.y) - cy) <= 4);
+      if (!trapped && ((ac > 0 && !allyRisk) || hit || (near && Math.random() < .5)) && canEscape(G, p, cx, cy)) { ai.bomb = true; ai.path = []; ai.t = .25; return; }
+    }
+    const hunt = G.time < ROUND_TIME - 45 || !G.grid.includes('x');
+    let bs = -1e9;
+    for (const c of r.q) {
+      const x = c % COLS, y = (c / COLS) | 0, ch = G.grid[c];
+      let s = -r.dist[c] * 1.15;
+      if (ch === 'b' || ch === 'p' || ch === 's') s += 9;
+      const ac = adjCrates(G, x, y); if (ac && p.active < p.cap) s += 2 + ac*1.4;
+      let mind = 99;
+      for (const e of G.players) {
+        if (e === p || e.st === 2) continue;
+        const md = Math.abs(Math.floor(e.x) - x) + Math.abs(Math.floor(e.y) - y);
+        // 갇힌 플레이어는 아군이든 적이든 최우선으로 달려가서 터치
+        if (e.st === 1) { s += (md === 0 ? 40 : md === 1 ? 16 : 0) + Math.max(0, 16 - md) * 1.8; continue; }
+        if (!isFoe(G, p, e)) continue;
+        s += (md === 0 ? 2 : Math.max(0, 5 - md)) * (hunt ? 1.6 : .9); if (md < mind) mind = md;
+      }
+      if (mind < 99) s -= mind * (hunt ? 1.7 : .5);
+      s += Math.random() * .9;
+      if (s > bs) { bs = s; goal = c; }
+    }
+  }
+  ai.path = goal >= 0 ? pathTo(r, goal) : [];
+}
+function botInput(G, p, h){
+  const ai = p.ai;
+  ai.t -= h;
+  if (ai.t <= 0) { ai.t = .14 + Math.random() * .16; botThink(G, p); }
+  let bomb = false; if (ai.bomb) { bomb = true; ai.bomb = false; }
+  let dx = 0, dy = 0;
+  const path = ai.path;
+  while (path.length) {
+    const [tx, ty] = path[0], ex = tx + .5 - p.x, ey = ty + .5 - p.y;
+    if (Math.abs(ex) < .07 && Math.abs(ey) < .07) { path.shift(); continue; }
+    if (Math.abs(ex) >= Math.abs(ey)) dx = Math.sign(ex); else dy = Math.sign(ey);
+    break;
+  }
+  return { dx, dy, bomb };
+}
+
+// ───────── 상태 ─────────
+let mode = 'menu'; // menu | local | host | client
+let G = null;      // 시뮬레이션 (local/host)
+let netModel = null, netRecvAt = 0; // client
+let disp = [];     // client 보간 위치
+let myIndex = -1;
+let resultShown = false;
+
+// ───────── 온라인 (PeerJS P2P) ─────────
+const ICE = { iceServers:[ { urls:'stun:stun.l.google.com:19302' }, { urls:'stun:stun1.l.google.com:19302' }, { urls:'stun:stun.cloudflare.com:3478' } ] };
+const ID_PREFIX = 'mulpung-pangpang-';
+let nr = null, roomCode = '', role = '', hostPeer = 'host', myPeer = null;
+let peerMap = new Map(), joinOrder = [], lobbyData = null, lobbyTimer = 0, sendTimer = 0;
+let clientInp = [0,0,0], clientBombs = 0, lobbyWaitTimer = null, canHost = true;
+
+function setOnlineNote(){
+  const n = $('onlineNote');
+  if (window.Peer) { n.textContent = '방을 만들고 초대 링크를 카톡으로 보내면 친구가 로그인 없이 들어와요. 최대 4명까지 함께해요.'; $('goHost').disabled = false; $('goJoin').disabled = false; }
+  else { n.textContent = '온라인 연결 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.'; $('goHost').disabled = true; $('goJoin').disabled = true; }
+}
+$('goHost').disabled = true; $('goJoin').disabled = true;
+if (document.readyState === 'complete') setOnlineNote(); else addEventListener('load', setOnlineNote);
+
+function nickName(){ const v = $('nick').value.trim().slice(0, 8); return v || '플레이어'; }
+function cleanNick(v){ return (typeof v === 'string' ? v : '').replace(/[\u0000-\u001f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/g, '').slice(0, 8) || '친구'; }
+function randCode(){ const a = 'abcdefghjkmnpqrstuvwxyz23456789'; let s = ''; for (let i = 0; i < 4; i++) s += a[Math.floor(Math.random()*a.length)]; return s; }
+
+function peerLeft(id){
+  peerMap.delete(id);
+  joinOrder = joinOrder.filter(x => x !== id);
+  if (G) for (const pl of G.players) if (pl.peer === id && pl.ctrl === 'remote') { pl.ctrl = 'bot'; pl.name = pl.name + '(봇)'; }
+  renderLobby(); emitLobby();
+}
+function hostData(id, d){
+  if (!d || typeof d !== 'object') return;
+  if (d.t === 'hello') {
+    if (!peerMap.has(id)) peerMap.set(id, { peer:id, kind:'viewer', presence:{ nick:cleanNick(d.nick), inp:[0,0,0] } });
+    else peerMap.get(id).presence.nick = cleanNick(d.nick);
+    if (!joinOrder.includes(id)) joinOrder.push(id);
+    if (mode !== 'host') renderLobby();
+    emitLobby();
+  } else if (d.t === 'inp' && Array.isArray(d.inp) && d.inp.length === 3) {
+    const e = peerMap.get(id); if (e) e.presence.inp = d.inp.map(v => num(v, 0));
+  }
+}
+function makeHost(code){
+  return new Promise((resolve, reject) => {
+    let opened = false;
+    const peer = new Peer(ID_PREFIX + code, { config:ICE, debug:0 });
+    const conns = new Map();
+    const net = {
+      peer, conns,
+      emit(topic, data){ const msg = { t:topic, d:data }; for (const c of conns.values()) if (c.open) { try { c.send(msg); } catch (e) {} } return Promise.resolve(); },
+      presence(){ return Promise.resolve(); },
+      leave(){ try { peer.destroy(); } catch (e) {} return Promise.resolve(); },
+    };
+    peer.on('open', () => { opened = true; resolve(net); });
+    peer.on('error', e => { if (!opened) { try { peer.destroy(); } catch (x) {} reject(e); } });
+    peer.on('disconnected', () => { if (nr === net) { try { peer.reconnect(); } catch (e) {} } });
+    peer.on('connection', conn => {
+      conn.on('open', () => {
+        if (conns.size >= 8) { try { conn.close(); } catch (e) {} return; }
+        conns.set(conn.peer, conn);
+      });
+      conn.on('data', d => hostData(conn.peer, d));
+      const gone = () => { if (conns.get(conn.peer) === conn) { conns.delete(conn.peer); peerLeft(conn.peer); } };
+      conn.on('close', gone); conn.on('error', gone);
+    });
+  });
+}
+function makeClient(code){
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const peer = new Peer({ config:ICE, debug:0 });
+    let conn = null;
+    const net = {
+      peer,
+      emit(){ return Promise.resolve(); },
+      presence(patch){ if (patch && patch.inp && conn && conn.open) { try { conn.send({ t:'inp', inp:patch.inp }); } catch (e) {} } return Promise.resolve(); },
+      leave(){ done = true; try { peer.destroy(); } catch (e) {} return Promise.resolve(); },
+    };
+    const fail = e => { if (!done) { done = true; try { peer.destroy(); } catch (x) {} reject(e); } };
+    const timer = setTimeout(() => fail({ type:'timeout' }), 15000);
+    peer.on('open', id => {
+      myPeer = id;
+      conn = peer.connect(ID_PREFIX + code, { serialization:'json', reliable:true });
+      conn.on('open', () => { if (done) return; done = true; clearTimeout(timer); conn.send({ t:'hello', nick:nickName() }); resolve(net); });
+      conn.on('data', d => {
+        if (!d || typeof d !== 'object' || !d.d || typeof d.d !== 'object') return;
+        if (d.t === 'lobby') { lobbyData = d.d; clearTimeout(lobbyWaitTimer); $('lobbyErr').textContent = ''; if (mode !== 'client') renderLobby(); }
+        else if (d.t === 'state') onNetState(d.d);
+      });
+      conn.on('close', () => { if (nr === net) roomEnded('방장과 연결이 끊겼어요.'); });
+    });
+    peer.on('error', e => { clearTimeout(timer); fail(e); });
+  });
+}
+async function hostRoom(){
+  $('onlineErr').textContent = '';
+  $('goHost').disabled = true;
+  if (nr) { try { await nr.leave(); } catch (e) {} nr = null; }
+  role = 'host'; canHost = true; myPeer = 'host'; peerMap = new Map(); joinOrder = []; lobbyData = null;
+  for (let tries = 0; tries < 4 && !nr; tries++) {
+    const code = randCode();
+    try { nr = await makeHost(code); roomCode = code; }
+    catch (e) { if (!e || e.type !== 'unavailable-id') break; }
+  }
+  $('goHost').disabled = false;
+  if (!nr) { role = ''; $('onlineErr').textContent = '방을 만들지 못했어요. 인터넷 연결을 확인하고 다시 해 보세요.'; return; }
+  showScreen('scrLobby'); renderLobby(); emitLobby();
+}
+async function joinRoom(){
+  $('onlineErr').textContent = '';
+  const code = $('joinCode').value.trim().toLowerCase();
+  if (!/^[a-z0-9]{4}$/.test(code)) { $('onlineErr').textContent = '방 코드 4자리를 입력해 주세요.'; return; }
+  if (nr) { try { await nr.leave(); } catch (e) {} nr = null; }
+  role = 'client'; lobbyData = null; netModel = null; myIndex = -1; roomCode = code;
+  clientInp = [0,0,0]; clientBombs = 0;
+  $('goJoin').disabled = true; $('onlineErr').textContent = '방에 연결하는 중이에요…';
+  try {
+    nr = await makeClient(code);
+    $('onlineErr').textContent = '';
+    showScreen('scrLobby'); renderLobby();
+    lobbyWaitTimer = setTimeout(() => { if (!lobbyData) $('lobbyErr').textContent = '연결은 됐는데 방 정보가 오지 않아요. 잠시 기다리거나 다시 들어와 주세요.'; }, 6000);
+  } catch (e) {
+    role = '';
+    $('onlineErr').textContent = e && e.type === 'peer-unavailable' ? '그 코드의 방이 없어요. 코드를 확인하거나 방장에게 다시 물어보세요.'
+      : e && e.type === 'timeout' ? '연결이 너무 오래 걸려요. 둘 다 와이파이에 연결한 뒤 다시 해 보세요.'
+      : '방에 들어가지 못했어요. 인터넷 연결을 확인하고 다시 해 보세요.';
+  }
+  $('goJoin').disabled = false;
+}
+// 초대 링크로 들어오면 코드 자동 입력
+(function(){
+  const m = /^#([a-z0-9]{4})$/i.exec(location.hash || '');
+  if (m) { $('joinCode').value = m[1].toLowerCase(); setTimeout(() => { $('onlineErr').textContent = '초대 코드가 입력됐어요. 이름을 정하고 참여를 눌러 주세요.'; }, 0); }
+})();
+$('inviteBtn').onclick = async () => {
+  const url = location.origin + location.pathname + '#' + roomCode;
+  const text = '물풍선 팡팡 같이 하자! 방 코드 ' + roomCode.toUpperCase();
+  try {
+    if (navigator.share) { await navigator.share({ title:'물풍선 팡팡', text, url }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(text + '\n' + url); $('inviteBtn').textContent = '복사했어요!'; setTimeout(() => { $('inviteBtn').textContent = '초대 링크 보내기'; }, 1800); }
+  catch (e) { prompt('이 주소를 복사해서 보내 주세요', url); }
+};
+function lobbySlotsHost(){
+  const list = [{ peer:myPeer, nick:nickName(), host:true }];
+  for (const id of joinOrder) {
+    const p = peerMap.get(id);
+    if (!p || p.kind !== 'viewer' || !p.presence || p.presence.host) continue;
+    list.push({ peer:id, nick:cleanNick(p.presence.nick) });
+  }
+  return list;
+}
+function emitLobby(){
+  if (role !== 'host' || !nr) return;
+  const slots = G && mode === 'host'
+    ? G.players.map(p => ({ peer:p.peer || '', nick:p.name, bot:p.ctrl === 'bot' }))
+    : lobbySlotsHost().map(s => ({ peer:s.peer || '', nick:s.nick }));
+  nr.emit('lobby', { ph: G && mode === 'host' ? 'play' : 'lobby', slots, bots:$('fillBots').checked, teams: G && mode === 'host' ? G.teams : teamMode }).catch(err => {
+    if (err && err.code === 'not_permitted' && canHost) { canHost = false; $('lobbyErr').textContent = '지금 권한으로는 방장을 할 수 없어요. 친구가 만든 방에 참여해 주세요.'; $('lobbyStart').disabled = true; }
+  });
+}
+function renderLobby(){
+  $('lobbyCode').textContent = roomCode.toUpperCase();
+  const list = $('lobbyList'); list.textContent = '';
+  let slots;
+  $('inviteBtn').style.display = role === 'host' ? '' : 'none';
+  if (role === 'host') { slots = lobbySlotsHost(); $('botsWrap').style.display = ''; $('lobbyStart').style.display = ''; }
+  else {
+    slots = lobbyData ? (lobbyData.slots || []).map(s => ({ peer:s.peer, nick:cleanNick(s.nick), bot:!!s.bot })) : [];
+    $('botsWrap').style.display = 'none'; $('lobbyStart').style.display = 'none';
+  }
+  if (role === 'client' && !lobbyData) {
+    const d = document.createElement('p'); d.className = 'note'; d.textContent = '방장을 찾는 중이에요…'; list.appendChild(d);
+  }
+  const tm = role === 'client' ? !!(lobbyData && lobbyData.teams) : teamMode;
+  syncModes();
+  slots.slice(0, 6).forEach((s, i) => {
+    const row = document.createElement('div'); row.className = 'slot';
+    const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = i < 4 ? PAL[ciFor(i, tm)][0] : 'transparent';
+    const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = s.nick;
+    const sm = document.createElement('small');
+    sm.textContent = (s.host || i === 0 ? '방장' : (i < 4 ? '참가' : '관전')) + (tm && i < 4 ? ' · ' + TEAM_NAMES[TEAMOF[i]] : '') + (s.peer && s.peer === myPeer ? ' · 나' : '');
+    lbl.appendChild(sm); row.append(dot, lbl); list.appendChild(row);
+  });
+  if (role === 'client' && lobbyData) {
+    const d = document.createElement('p'); d.className = 'note';
+    d.textContent = lobbyData.ph === 'play' ? '게임이 진행 중이에요. 다음 판부터 함께할 수 있어요.' : '방장이 게임을 시작하면 바로 넘어가요.';
+    list.appendChild(d);
+  }
+  if (role === 'host') $('lobbyStart').disabled = !canHost || (slots.length < 2 && !$('fillBots').checked);
+}
+$('fillBots').onchange = () => { renderLobby(); emitLobby(); };
+
+function hostStart(){
+  if (role !== 'host') return;
+  const ls = lobbySlotsHost();
+  const slots = [{ name:nickName(), ctrl:'me', peer:myPeer }];
+  for (const s of ls.slice(1, 4)) {
+    const p = peerMap.get(s.peer); const inp = p && p.presence && p.presence.inp;
+    slots.push({ name:s.nick, ctrl:'remote', peer:s.peer, lastBomb:Array.isArray(inp) ? Number(inp[2]) || 0 : 0 });
+  }
+  let bn = 1;
+  if ($('fillBots').checked) while (slots.length < 4) slots.push({ name:'봇 ' + bn++, ctrl:'bot' });
+  if (slots.length < 2) slots.push({ name:'봇 ' + bn++, ctrl:'bot' });
+  G = newGame(slots, teamMode); myIndex = 0;
+  startPlay('host');
+  emitLobby();
+}
+function serialize(G){
+  return {
+    g:G.grid.join(''),
+    p:G.players.map(p => [Math.round(p.x*100), Math.round(p.y*100), p.dir, p.st, p.cap, p.pow, p.spd, p.moving ? 1 : 0, Math.round(p.bub*10), p.team, p.ci]),
+    t:G.teams ? 1 : 0, wt:G.winTeam,
+    n:G.players.map(p => p.name), pe:G.players.map(p => p.peer || ''),
+    b:G.balloons.map(b => [b.x, b.y, Math.round(b.t*10)]),
+    f:G.flames.slice(0, 150).map(f => [f.x, f.y, 'chv'.indexOf(f.k)]),
+    tm:Math.ceil(G.time), o:G.over ? 1 : 0, w:G.winner,
+  };
+}
+function num(v, d){ v = Number(v); return Number.isFinite(v) ? v : d; }
+function onNetState(s){
+  if (typeof s.g !== 'string' || s.g.length !== COLS*ROWS || !Array.isArray(s.p)) return;
+  const players = s.p.slice(0, 4).map((a, i) => ({
+    i, x:num(a[0], 50)/100, y:num(a[1], 50)/100, dir:num(a[2], 2) & 3, st:num(a[3], 0), cap:num(a[4], 1), pow:num(a[5], 2), spd:num(a[6], 0),
+    moving:!!a[7], bub:num(a[8], 0)/10, team:num(a[9], i), ci:Math.max(0, Math.min(5, num(a[10], i) | 0)), name:cleanNick(Array.isArray(s.n) ? s.n[i] : ''), peer:Array.isArray(s.pe) ? s.pe[i] : '',
+  }));
+  const wasOver = netModel && netModel.over;
+  netModel = {
+    grid:s.g.split(''), players,
+    balloons:(Array.isArray(s.b) ? s.b : []).slice(0, 60).map(a => ({ x:num(a[0], -9), y:num(a[1], -9), t:num(a[2], 20)/10 })),
+    flames:(Array.isArray(s.f) ? s.f : []).slice(0, 150).map(a => ({ x:num(a[0], -9), y:num(a[1], -9), k:'chv'[num(a[2], 0)] || 'c', t:.4 })),
+    time:num(s.tm, 0), over:!!s.o, winner:num(s.w, -1), overT:0, teams:!!s.t, winTeam:num(s.wt, -1),
+  };
+  if (netModel.over) netModel.overT = wasOver ? 9 : 0;
+  netRecvAt = performance.now();
+  myIndex = players.findIndex(p => p.peer && p.peer === myPeer);
+  if (mode !== 'client') { disp = players.map(p => ({ x:p.x, y:p.y })); startPlay('client'); }
+  if (disp.length !== players.length) disp = players.map(p => ({ x:p.x, y:p.y }));
+  if (!netModel.over && resultShown) hideResult();
+}
+function roomEnded(msg){
+  if (mode === 'client' || role === 'client') {
+    leaveAll();
+    showScreen('scrMenu');
+    $('onlineErr').textContent = msg;
+  }
+}
+async function leaveAll(){
+  clearTimeout(lobbyWaitTimer);
+  const r = nr; nr = null; role = ''; hostPeer = null; lobbyData = null; netModel = null; G = null; mode = 'menu';
+  if (r) { try { await r.leave(); } catch (e) {} }
+}
+
+// ───────── 로컬 설정 ─────────
+const localSlots = ['human', 'bot', 'bot', 'bot'];
+function renderLocal(){
+  const box = $('localSlots'); box.textContent = '';
+  localSlots.forEach((v, i) => {
+    const row = document.createElement('div'); row.className = 'slot';
+    const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = v === 'off' ? 'transparent' : PAL[ciFor(i, teamMode)][0];
+    const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = (i + 1) + 'P' + (teamMode ? ' · ' + TEAM_NAMES[TEAMOF[i]] : '');
+    const sm = document.createElement('small');
+    sm.textContent = v === 'human' ? (i === 0 ? KEYSETS[0].name + (document.body.classList.contains('touch') ? ' · 터치' : '') : KEYSETS[i].name) : v === 'bot' ? '컴퓨터가 조작해요' : '이 자리는 비워요';
+    lbl.appendChild(sm);
+    const b = document.createElement('button'); b.className = 'btn alt'; b.textContent = v === 'human' ? '사람' : v === 'bot' ? '봇' : '비움';
+    b.onclick = () => { localSlots[i] = v === 'human' ? 'bot' : v === 'bot' ? 'off' : 'human'; renderLocal(); };
+    row.append(dot, lbl, b); box.appendChild(row);
+  });
+  syncModes();
+  const n = localSlots.filter(v => v !== 'off').length;
+  const teamsUsed = new Set(localSlots.map((v, i) => v === 'off' ? -1 : TEAMOF[i]).filter(t => t >= 0));
+  const bad = n < 2 || (teamMode && teamsUsed.size < 2);
+  $('localErr').textContent = n < 2 ? '두 자리 이상 채워야 시작할 수 있어요.' : bad ? '팀전은 두 팀 모두 한 명 이상 있어야 해요.' : '';
+  $('localStart').disabled = bad;
+}
+function localStart(){
+  const p2human = localSlots[1] === 'human';
+  const slots = [];
+  let bn = 1;
+  localSlots.forEach((v, i) => {
+    if (v === 'off') return;
+    if (v === 'human') slots.push({ seat:i, name:(i === 0 ? nickName() : (i + 1) + 'P'), ctrl:'key', ks:i, sets:(i === 0 && !p2human) ? [0,1] : [i] });
+    else slots.push({ seat:i, name:'봇 ' + bn++, ctrl:'bot' });
+  });
+  G = newGame(slots, teamMode);
+  myIndex = slots.findIndex(s => s.ctrl === 'key');
+  startPlay('local');
+}
+
+function syncModes(){
+  const client = role === 'client';
+  const tm = client ? !!(lobbyData && lobbyData.teams) : teamMode;
+  document.querySelectorAll('.modeRow button').forEach(b => {
+    const on = (b.dataset.mode === 'team') === tm;
+    b.className = 'btn' + (on ? '' : ' alt'); b.disabled = client && b.closest('#modeBoxO') !== null;
+  });
+  document.querySelectorAll('.modeNote').forEach(n => {
+    const online = n.closest('#modeBoxO') !== null;
+    n.textContent = tm
+      ? '물줄기에 갇힌 사람에게 아군이 닿으면 살려 주고, 적이 닿으면 터져요. ' + (online ? '목록의 1·4번째가 노을 팀, 2·3번째가 바다 팀이에요.' : '1P·4P는 노을 팀, 2P·3P는 바다 팀이에요.')
+      : '모두가 적이에요. 갇힌 사람에게 누구든 닿으면 터져요.';
+  });
+}
+document.querySelectorAll('.modeRow button').forEach(b => b.addEventListener('click', () => {
+  if (role === 'client') return;
+  teamMode = b.dataset.mode === 'team';
+  renderLocal(); if (role === 'host') { renderLobby(); emitLobby(); }
+}));
+
+// ───────── 화면 전환 ─────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+}
+function startPlay(m){
+  mode = m; resultShown = false; hideResult();
+  showScreen('none');
+  held.length = 0; bombQ.fill(0);
+  acc = 0; prevSound = null; hudKey = '';
+  requestAnimationFrame(resize);
+}
+function hideResult(){ $('result').style.display = 'none'; resultShown = false; }
+function showResult(model){
+  resultShown = true;
+  const w = model.winner, p = model.players[w];
+  if (model.teams) {
+    const wt = model.winTeam, mine = myIndex >= 0 ? model.players[myIndex].team : -2;
+    $('resTitle').textContent = wt < 0 ? '무승부' : (wt === mine ? '우리 팀 승리!' : TEAM_NAMES[wt] + ' 승리');
+    $('resSub').textContent = wt < 0 ? (model.time <= 0 ? '시간이 다 됐어요.' : '두 팀 모두 물방울에 갇혔어요.') : (wt === mine ? '팀워크로 살아남았어요.' : '다음 판에 다시 도전해 보세요.');
+  } else {
+  $('resTitle').textContent = w < 0 ? '무승부' : (w === myIndex ? '승리!' : p.name + ' 승리');
+  $('resSub').textContent = w < 0 ? (model.time <= 0 ? '시간이 다 됐어요.' : '모두 물방울에 갇혔어요.') : (w === myIndex ? '마지막까지 살아남았어요.' : '다음 판에 다시 도전해 보세요.');
+  }
+  const host = mode !== 'client';
+  $('againBtn').style.display = host ? '' : 'none';
+  $('menuBtn').textContent = host ? '메뉴로' : '나가기';
+  if (!host) $('resSub').textContent += ' 방장이 새 판을 열면 바로 이어져요.';
+  $('result').style.display = 'flex';
+}
+$('goLocal').onclick = () => { initAudio(); renderLocal(); showScreen('scrLocal'); };
+$('localBack').onclick = () => showScreen('scrMenu');
+$('localStart').onclick = () => { initAudio(); localStart(); };
+$('goHost').onclick = () => { initAudio(); hostRoom(); };
+$('goJoin').onclick = () => { initAudio(); joinRoom(); };
+$('joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') { initAudio(); joinRoom(); } });
+$('lobbyStart').onclick = () => { initAudio(); hostStart(); };
+$('lobbyBack').onclick = async () => { $('lobbyErr').textContent = ''; await leaveAll(); showScreen('scrMenu'); };
+$('againBtn').onclick = () => {
+  if (mode === 'local') localStart();
+  else if (mode === 'host') hostStart();
+};
+async function toMenu(){
+  if (mode === 'host') { G = null; mode = 'menu'; showScreen('scrLobby'); renderLobby(); emitLobby(); return; }
+  if (mode === 'client') { await leaveAll(); showScreen('scrMenu'); return; }
+  G = null; mode = 'menu'; showScreen('scrMenu');
+}
+$('menuBtn').onclick = toMenu;
+$('quitBtn').onclick = toMenu;
+try { const saved = sessionStorage.getItem('pp-nick'); if (saved) $('nick').value = saved; } catch (e) {}
+$('nick').addEventListener('change', () => { try { sessionStorage.setItem('pp-nick', $('nick').value.trim()); } catch (e) {} });
+
+// ───────── 그리기 ─────────
+const cv = $('cv'), ctx = cv.getContext('2d');
+let T = 40, dpr = 1;
+function resize(){
+  const st = $('stage');
+  const w = st.clientWidth, h = st.clientHeight;
+  T = Math.max(14, Math.floor(Math.min(w / COLS, h / ROWS)));
+  dpr = Math.min(3, window.devicePixelRatio || 1);
+  cv.width = COLS*T*dpr; cv.height = ROWS*T*dpr;
+  cv.style.width = COLS*T + 'px'; cv.style.height = ROWS*T + 'px';
+}
+addEventListener('resize', resize);
+function rr(x, y, w, h, r){ ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
+function draw(model, now){
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const t = now / 1000;
+  // 바닥
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    ctx.fillStyle = (x + y) % 2 ? '#EBCF97' : '#F3DDAE';
+    ctx.fillRect(x*T, y*T, T, T);
+  }
+  // 물줄기 (바닥 위)
+  for (const f of model.flames) {
+    const a = Math.min(1, f.t / .2), cx = f.x*T + T/2, cy = f.y*T + T/2;
+    ctx.globalAlpha = .9 * a;
+    ctx.fillStyle = '#7FD3FA';
+    if (f.k === 'h') rr(f.x*T - 1, cy - T*.32, T + 2, T*.64, T*.3);
+    else if (f.k === 'v') rr(cx - T*.32, f.y*T - 1, T*.64, T + 2, T*.3);
+    else rr(f.x*T + T*.06, f.y*T + T*.06, T*.88, T*.88, T*.44);
+    ctx.fill();
+    ctx.fillStyle = '#E8F9FF';
+    if (f.k === 'h') rr(f.x*T, cy - T*.12, T, T*.24, T*.12);
+    else if (f.k === 'v') rr(cx - T*.12, f.y*T, T*.24, T, T*.12);
+    else rr(cx - T*.24, cy - T*.24, T*.48, T*.48, T*.24);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  // 타일
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const c = model.grid[y*COLS + x], px = x*T, py = y*T;
+    if (c === '#') {
+      ctx.fillStyle = '#5E7D8C'; rr(px + T*.05, py + T*.12, T*.9, T*.86, T*.2); ctx.fill();
+      ctx.fillStyle = '#8FAAB7'; rr(px + T*.05, py + T*.02, T*.9, T*.72, T*.2); ctx.fill();
+      ctx.fillStyle = '#B4CAD3'; rr(px + T*.2, py + T*.12, T*.36, T*.14, T*.07); ctx.fill();
+    } else if (c === 'x') {
+      ctx.fillStyle = '#8F5A2C'; rr(px + T*.07, py + T*.14, T*.86, T*.82, T*.12); ctx.fill();
+      ctx.fillStyle = '#D39A5B'; rr(px + T*.07, py + T*.06, T*.86, T*.74, T*.12); ctx.fill();
+      ctx.strokeStyle = '#A86F38'; ctx.lineWidth = Math.max(1, T*.06);
+      ctx.beginPath(); ctx.moveTo(px + T*.07, py + T*.32); ctx.lineTo(px + T*.93, py + T*.32);
+      ctx.moveTo(px + T*.07, py + T*.56); ctx.lineTo(px + T*.93, py + T*.56); ctx.stroke();
+    } else if (ITEM_ICON[c]) {
+      const bob = Math.sin(t*4 + x + y) * T*.05;
+      ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.strokeStyle = '#7FC9EC'; ctx.lineWidth = Math.max(1, T*.05);
+      ctx.beginPath(); ctx.arc(px + T/2, py + T/2 + bob, T*.36, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.font = `${Math.round(T*.42)}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(ITEM_ICON[c], px + T/2, py + T/2 + bob + T*.02);
+    }
+  }
+  // 물풍선
+  for (const b of model.balloons) {
+    const urgency = b.t < 1 ? 14 : 6;
+    const sc = 1 + Math.sin(t*urgency) * .06;
+    const cx = b.x*T + T/2, cy = b.y*T + T*.54;
+    ctx.fillStyle = 'rgba(0,0,0,.15)'; ctx.beginPath(); ctx.ellipse(cx, b.y*T + T*.88, T*.3, T*.08, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#2E9BEA'; ctx.beginPath(); ctx.ellipse(cx, cy, T*.36*sc, T*.34/sc, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(210,240,255,.8)'; ctx.beginPath(); ctx.ellipse(cx - T*.12, cy - T*.12, T*.08, T*.12, -.5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#1C6FA9'; ctx.beginPath(); ctx.moveTo(cx - T*.07, cy - T*.32); ctx.lineTo(cx + T*.07, cy - T*.32); ctx.lineTo(cx, cy - T*.42); ctx.fill();
+  }
+  // 캐릭터
+  const order = model.players.map((p, i) => i).sort((a, b) => model.players[a].y - model.players[b].y);
+  for (const i of order) {
+    const p = model.players[i];
+    if (p.st === 2) continue;
+    const pos = (mode === 'client' && disp[i]) ? disp[i] : p;
+    drawBlob(pos.x*T, pos.y*T, p, i, t);
+  }
+}
+function drawBlob(px, py, p, i, t){
+  const bub = p.st === 1;
+  const lift = bub ? -T*.12 + Math.sin(t*3 + i)*T*.04 : 0;
+  const hop = p.moving && !bub ? Math.abs(Math.sin(t*12 + i)) * T*.07 : 0;
+  const cx = px, cy = py + lift - hop + T*.04;
+  ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(px, py + T*.36, T*.28, T*.08, 0, 0, Math.PI*2); ctx.fill();
+  // 몸
+  const pal = PAL[p.ci] || PAL[i];
+  if (G && G.teams || (mode === 'client' && netModel && netModel.teams)) {
+    ctx.strokeStyle = TEAM_COLORS[p.team] || '#fff'; ctx.lineWidth = Math.max(2, T*.07);
+    ctx.beginPath(); ctx.ellipse(px, py + T*.36, T*.32, T*.11, 0, 0, Math.PI*2); ctx.stroke();
+  }
+  ctx.fillStyle = pal[1]; ctx.beginPath(); ctx.ellipse(cx, cy + T*.03, T*.34, T*.31, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = pal[0]; ctx.beginPath(); ctx.ellipse(cx, cy, T*.34, T*.3, 0, 0, Math.PI*2); ctx.fill();
+  // 새싹
+  ctx.fillStyle = '#4FAE5C';
+  ctx.beginPath(); ctx.ellipse(cx + T*.07, cy - T*.33, T*.1, T*.05, -.6, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx - T*.05, cy - T*.33, T*.08, T*.04, .7, 0, Math.PI*2); ctx.fill();
+  // 눈
+  const [ox, oy] = [[0,-.04],[.07,0],[0,.04],[-.07,0]][p.dir];
+  if (bub) {
+    ctx.strokeStyle = '#173847'; ctx.lineWidth = Math.max(1.2, T*.05); ctx.lineCap = 'round';
+    for (const s of [-1, 1]) { const ex = cx + s*T*.12, ey = cy - T*.03;
+      ctx.beginPath(); ctx.moveTo(ex - T*.05, ey - T*.05); ctx.lineTo(ex + T*.05, ey + T*.05); ctx.moveTo(ex + T*.05, ey - T*.05); ctx.lineTo(ex - T*.05, ey + T*.05); ctx.stroke(); }
+  } else {
+    for (const s of [-1, 1]) {
+      const ex = cx + s*T*.12 + ox*T*.6, ey = cy - T*.04 + oy*T*.6;
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(ex, ey, T*.085, T*.1, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#173847'; ctx.beginPath(); ctx.arc(ex + ox*T*.5, ey + oy*T*.5 + T*.01, T*.045, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.ellipse(cx - T*.14, cy + T*.14, T*.06, T*.035, 0, 0, Math.PI*2); ctx.fill();
+  }
+  // 물방울에 갇힘
+  if (bub) {
+    const r = T*.5 + Math.sin(t*5)*T*.02;
+    ctx.fillStyle = 'rgba(160,220,255,.38)'; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = Math.max(1, T*.04);
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.beginPath(); ctx.ellipse(cx - r*.45, cy - r*.45, r*.14, r*.22, -.7, 0, Math.PI*2); ctx.fill();
+    const frac = Math.max(0, Math.min(1, p.bub / BUBBLE_TIME));
+    ctx.strokeStyle = '#C93E57'; ctx.lineWidth = Math.max(2, T*.07);
+    ctx.beginPath(); ctx.arc(cx, cy, r + T*.06, -Math.PI/2, -Math.PI/2 + frac*Math.PI*2); ctx.stroke();
+  }
+  // 나 표시
+  if (i === myIndex && mode !== 'menu') {
+    ctx.fillStyle = '#173847';
+    const ty = cy - T*(bub ? .72 : .52) + Math.sin(t*4)*T*.03;
+    ctx.beginPath(); ctx.moveTo(cx - T*.1, ty - T*.1); ctx.lineTo(cx + T*.1, ty - T*.1); ctx.lineTo(cx, ty + T*.02); ctx.fill();
+  }
+}
+
+// ───────── HUD ─────────
+let hudKey = '';
+function updateHud(model){
+  const key = model.players.map(p => [p.name, p.st, p.cap, p.pow, p.spd, p.ci, p.team].join(',')).join('|') + myIndex + (model.teams ? 't' : '');
+  if (key !== hudKey) {
+    hudKey = key;
+    const hud = $('hud'); hud.textContent = '';
+    model.players.forEach((p, i) => {
+      const c = document.createElement('div');
+      c.className = 'chip' + (p.st === 2 ? ' out' : '') + (p.st === 1 ? ' trap' : '') + (i === myIndex ? ' me' : '');
+      const d = document.createElement('span'); d.className = 'dot'; d.style.background = (PAL[p.ci] || PAL[i])[0];
+      if (model.teams) c.style.boxShadow = `inset 5px 0 0 ${TEAM_COLORS[p.team]}`;
+      const n = document.createElement('span'); n.className = 'nm'; n.textContent = p.name;
+      const s = document.createElement('span'); s.className = 'st';
+      s.textContent = p.st === 2 ? '탈락' : p.st === 1 ? '갇힘!' : `🎈${p.cap} 💧${p.pow} 👟${p.spd + 1}`;
+      c.append(d, n, s); hud.appendChild(c);
+    });
+  }
+  const tm = Math.max(0, Math.ceil(model.time));
+  const el = $('timer');
+  el.textContent = Math.floor(tm / 60) + ':' + String(tm % 60).padStart(2, '0');
+  el.classList.toggle('hurry', tm <= 30);
+}
+
+// ───────── 소리 트리거 (상태 변화 감지) ─────────
+let prevSound = null;
+function soundDiff(model){
+  const cur = { b:model.balloons.length, f:model.flames.length, trap:model.players.filter(p => p.st === 1).length, dead:model.players.filter(p => p.st === 2).length,
+    items:model.players.reduce((a, p) => a + p.cap + p.pow + p.spd, 0) };
+  if (prevSound) {
+    if (cur.b > prevSound.b) tone(260, 520, .09, 'sine', .1);
+    if (cur.f > prevSound.f + 0) splash();
+    if (cur.items > prevSound.items) { tone(660, 990, .08, 'square', .05); setTimeout(() => tone(990, 1320, .08, 'square', .05), 70); }
+    if (cur.trap > prevSound.trap) tone(700, 300, .35, 'sine', .12);
+    if (cur.dead > prevSound.dead) tone(900, 120, .3, 'sawtooth', .07);
+  }
+  prevSound = cur;
+}
+
+// ───────── 루프 ─────────
+let last = performance.now(), acc = 0;
+const H = 1/60;
+function gather(h){
+  const inputs = [];
+  for (const p of G.players) {
+    if (p.st === 2) { inputs.push(null); continue; }
+    if (p.ctrl === 'bot') inputs.push(botInput(G, p, h));
+    else if (p.ctrl === 'key') {
+      const d = dirOf(p.sets, p.ks === 0);
+      inputs.push({ dx:d[0], dy:d[1], bomb:takeBomb(p.sets) });
+    } else if (p.ctrl === 'me') {
+      const d = dirOf([0,1], true);
+      inputs.push({ dx:d[0], dy:d[1], bomb:takeBomb([0,1]) });
+    } else if (p.ctrl === 'remote') {
+      const pr = peerMap.get(p.peer), inp = pr && pr.presence && pr.presence.inp;
+      let dx = 0, dy = 0, bomb = false;
+      if (Array.isArray(inp) && inp.length === 3) {
+        dx = Math.sign(num(inp[0], 0)); dy = Math.sign(num(inp[1], 0)); if (dx && dy) dy = 0;
+        const bc = num(inp[2], 0);
+        if (bc > p.lastBomb) bomb = true;
+        p.lastBomb = bc;
+      }
+      inputs.push({ dx, dy, bomb });
+    } else inputs.push(null);
+  }
+  return inputs;
+}
+function frame(now){
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  let model = null;
+  if ((mode === 'local' || mode === 'host') && G) {
+    acc += dt;
+    while (acc >= H) { step(G, gather(H), H); acc -= H; }
+    model = G;
+    if (mode === 'host' && nr) {
+      sendTimer -= dt;
+      if (sendTimer <= 0) { sendTimer = .05; nr.emit('state', serialize(G)).catch(() => {}); }
+      lobbyTimer -= dt;
+      if (lobbyTimer <= 0) { lobbyTimer = 2; emitLobby(); }
+    }
+  } else if (mode === 'client' && netModel) {
+    model = netModel;
+    if (model.over) model.overT += dt;
+    const k = Math.min(1, dt * 18);
+    model.players.forEach((p, i) => {
+      const d = disp[i]; if (!d) return;
+      if (Math.abs(d.x - p.x) > 1.5 || Math.abs(d.y - p.y) > 1.5) { d.x = p.x; d.y = p.y; }
+      d.x += (p.x - d.x) * k; d.y += (p.y - d.y) * k;
+    });
+    const dd = dirOf([0,1], true);
+    if (takeBomb([0,1])) clientBombs++;
+    if (dd[0] !== clientInp[0] || dd[1] !== clientInp[1] || clientBombs !== clientInp[2]) {
+      clientInp = [dd[0], dd[1], clientBombs];
+      if (nr) nr.presence({ inp:clientInp }).catch(() => {});
+    }
+    $('spect').style.display = myIndex < 0 ? 'block' : 'none';
+  } else if (role === 'host' && nr) {
+    lobbyTimer -= dt;
+    if (lobbyTimer <= 0) { lobbyTimer = 1.5; emitLobby(); }
+  }
+  if (model) {
+    if (mode !== 'client') $('spect').style.display = 'none';
+    draw(model, now); updateHud(model); soundDiff(model);
+    if (model.over && model.overT > 1.1 && !resultShown) showResult(model);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
