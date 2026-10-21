@@ -216,7 +216,7 @@ let COLS = 15, ROWS = 11, VW = 15, VH = 11;
 function setDims(map){ ROWS = map.length; COLS = map[0].length; if (COLS >= ROWS) { VW = Math.min(15, COLS); VH = Math.min(11, ROWS); } else { VW = Math.min(11, COLS); VH = Math.min(15, ROWS); } }
 const MAX_HP = 20, START_AMMO = 10, MAX_SH = 5, SHIELD_TIME = 1.5, PARRY_WIN = 0.3, TIME_LIMIT = 300;
 const STAGES = [
-  { name:'가시 정원', spawn:16, max:1, elite:.1, keys:[[12, 5], [4, 4], [21, 1], [23, 9], [30, 5], [7, 1], [15, 8]], map:[
+  { name:'가시 정원', spawn:16, max:0, elite:.1, keys:[[12, 5], [4, 4], [21, 1], [23, 9], [30, 5], [7, 1], [15, 8]], map:[
 "############v#######################",
 "#.........OOOOOOOO......MOOOOOOOO.E#",
 "#.....^.O..OOOOOOO...^...OOOOOOO..O#",
